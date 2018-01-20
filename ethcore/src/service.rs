@@ -63,8 +63,6 @@ pub struct ClientService {
 	_stop_guard: StopGuard,
 }
 
-use std::mem::ManuallyDrop;
-
 impl Drop for ClientService {
 	fn drop(&mut self) {
 		println!("dropping client service");
