@@ -266,6 +266,12 @@ pub struct Miner {
 	service_transaction_action: ServiceTransactionAction,
 }
 
+impl Drop for Miner {
+	fn drop(&mut self) {
+		println!("dropping miner");
+	}
+}
+
 impl Miner {
 	/// Push notifier that will handle new jobs
 	pub fn push_notifier(&self, notifier: Box<NotifyWork>) {

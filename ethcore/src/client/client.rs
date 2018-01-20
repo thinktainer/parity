@@ -2043,7 +2043,9 @@ impl ProvingBlockChainClient for Client {
 
 impl Drop for Client {
 	fn drop(&mut self) {
+		println!("dropping client");
 		self.engine.stop();
+		println!("dropped client");
 	}
 }
 

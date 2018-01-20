@@ -725,7 +725,9 @@ impl KeyValueDB for Database {
 impl Drop for Database {
 	fn drop(&mut self) {
 		// write all buffered changes if we can.
+		println!("dropping kvdb");
 		let _ = self.flush();
+		println!("dropped kvdb");
 	}
 }
 
