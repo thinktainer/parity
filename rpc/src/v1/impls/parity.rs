@@ -52,14 +52,16 @@ use v1::types::{
 };
 use Host;
 
+use std::sync::Weak;
+
 /// Parity implementation.
 pub struct ParityClient<C, M, U>  {
 	client: Arc<C>,
 	miner: Arc<M>,
 	updater: Arc<U>,
-	sync: Arc<SyncProvider>,
-	net: Arc<ManageNetwork>,
-	health: NodeHealth,
+	sync: Weak<SyncProvider>,
+	net: Weak<ManageNetwork>,
+	health: Weak<NodeHealth>,
 	accounts: Option<Arc<AccountProvider>>,
 	logger: Arc<RotatingLogger>,
 	settings: Arc<NetworkSettings>,
@@ -79,7 +81,7 @@ impl<C, M, U> ParityClient<C, M, U> where
 		sync: Arc<SyncProvider>,
 		updater: Arc<U>,
 		net: Arc<ManageNetwork>,
-		health: NodeHealth,
+		health: Weak<NodeHealth>,
 		accounts: Option<Arc<AccountProvider>>,
 		logger: Arc<RotatingLogger>,
 		settings: Arc<NetworkSettings>,
@@ -88,6 +90,8 @@ impl<C, M, U> ParityClient<C, M, U> where
 		ws_address: Option<Host>,
 	) -> Self {
 		let eip86_transition = client.eip86_transition();
+		let sync = Arc::downgrade(&sync);
+		let net = Arc::downgrade(&net);
 		ParityClient {
 			client,
 			miner,
@@ -208,9 +212,9 @@ impl<C, M, U> Parity for ParityClient<C, M, U> where
 	}
 
 	fn net_peers(&self) -> Result<Peers> {
-		let sync_status = self.sync.status();
-		let net_config = self.net.network_config();
-		let peers = self.sync.peers().into_iter().map(Into::into).collect();
+		let sync_status = self.sync.upgrade().unwrap().status();
+		let net_config = self.net.upgrade().unwrap().network_config();
+		let peers = self.sync.upgrade().unwrap().peers().into_iter().map(Into::into).collect();
 
 		Ok(Peers {
 			active: sync_status.num_active_peers,
@@ -303,7 +307,7 @@ impl<C, M, U> Parity for ParityClient<C, M, U> where
 	}
 
 	fn pending_transactions_stats(&self) -> Result<BTreeMap<H256, TransactionStats>> {
-		let stats = self.sync.transactions_stats();
+		let stats = self.sync.upgrade().unwrap().transactions_stats();
 		Ok(stats.into_iter()
 		   .map(|(hash, stats)| (hash.into(), stats.into()))
 		   .collect()
@@ -355,7 +359,7 @@ impl<C, M, U> Parity for ParityClient<C, M, U> where
 	}
 
 	fn enode(&self) -> Result<String> {
-		self.sync.enode().ok_or_else(errors::network_disabled)
+		self.sync.upgrade().unwrap().enode().ok_or_else(errors::network_disabled)
 	}
 
 	fn consensus_capability(&self) -> Result<ConsensusCapability> {
@@ -431,7 +435,7 @@ impl<C, M, U> Parity for ParityClient<C, M, U> where
 	}
 
 	fn node_health(&self) -> BoxFuture<Health> {
-		Box::new(self.health.health()
+		Box::new(self.health.upgrade().unwrap().health()
 			.map_err(|err| errors::internal("Health API failure.", err)))
 	}
 }

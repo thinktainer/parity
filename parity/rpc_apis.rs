@@ -219,7 +219,7 @@ pub struct FullDependencies {
 	pub settings: Arc<NetworkSettings>,
 	pub net_service: Arc<ManageNetwork>,
 	pub updater: Arc<Updater>,
-	pub health: NodeHealth,
+	pub health: Weak<NodeHealth>,
 	pub geth_compatibility: bool,
 	pub dapps_service: Option<Arc<DappsService>>,
 	pub dapps_address: Option<Host>,
@@ -365,7 +365,7 @@ impl FullDependencies {
 						let whisper = whisper_rpc.make_handler(self.net.clone());
 						handler.extend_with(::parity_whisper::rpc::Whisper::to_delegate(whisper));
 					}
-				}
+				},
 				Api::WhisperPubSub => {
 					if !for_generic_pubsub {
 						if let Some(ref whisper_rpc) = self.whisper_rpc {
@@ -375,7 +375,7 @@ impl FullDependencies {
 							);
 						}
 					}
-				}
+				},
 			}
 		}
 	}
@@ -415,7 +415,7 @@ pub struct LightDependencies<T> {
 	pub secret_store: Arc<AccountProvider>,
 	pub logger: Arc<RotatingLogger>,
 	pub settings: Arc<NetworkSettings>,
-	pub health: NodeHealth,
+	pub health: Weak<NodeHealth>,
 	pub on_demand: Arc<::light::on_demand::OnDemand>,
 	pub cache: Arc<Mutex<LightDataCache>>,
 	pub transaction_queue: Arc<RwLock<LightTransactionQueue>>,
@@ -571,13 +571,13 @@ impl<C: LightChainClient + 'static> LightDependencies<C> {
 						let whisper = whisper_rpc.make_handler(self.net.clone());
 						handler.extend_with(::parity_whisper::rpc::Whisper::to_delegate(whisper));
 					}
-				}
+				},
 				Api::WhisperPubSub => {
 					if let Some(ref whisper_rpc) = self.whisper_rpc {
 						let whisper = whisper_rpc.make_handler(self.net.clone());
 						handler.extend_with(::parity_whisper::rpc::WhisperPubSub::to_delegate(whisper));
 					}
-				}
+				},
 			}
 		}
 	}

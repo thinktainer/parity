@@ -24,10 +24,12 @@ use endpoint::{Endpoint, Request, Response, EndpointPath};
 use futures::{future, Future};
 use node_health::{NodeHealth, HealthStatus};
 
+use std::sync::Weak;
+
 #[derive(Clone)]
 pub struct RestApi {
 	fetcher: Arc<Fetcher>,
-	health: NodeHealth,
+	health: Weak<NodeHealth>,
 }
 
 impl Endpoint for RestApi {
@@ -58,7 +60,7 @@ impl Endpoint for RestApi {
 impl RestApi {
 	pub fn new(
 		fetcher: Arc<Fetcher>,
-		health: NodeHealth,
+		health: Weak<NodeHealth>,
 	) -> Box<Endpoint> {
 		Box::new(RestApi {
 			fetcher,
@@ -77,7 +79,7 @@ impl RestApi {
 	}
 
 	fn health(&self) -> Response {
-		Box::new(self.health.health()
+		Box::new(self.health.upgrade().unwrap().health()
 			.then(|health| {
 				let status = match health {
 					Ok(ref health) => {

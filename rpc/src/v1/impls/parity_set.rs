@@ -33,12 +33,14 @@ use v1::helpers::errors;
 use v1::traits::ParitySet;
 use v1::types::{Bytes, H160, H256, U256, ReleaseInfo, Transaction, LocalDapp};
 
+use std::sync::Weak;
+
 /// Parity-specific rpc interface for operations altering the settings.
 pub struct ParitySetClient<C, M, U, F = fetch::Client> {
 	client: Arc<C>,
 	miner: Arc<M>,
 	updater: Arc<U>,
-	net: Arc<ManageNetwork>,
+	net: Weak<ManageNetwork>,
 	dapps: Option<Arc<DappsService>>,
 	fetch: F,
 	eip86_transition: u64,
@@ -60,7 +62,7 @@ impl<C, M, U, F> ParitySetClient<C, M, U, F>
 			client: client.clone(),
 			miner: miner.clone(),
 			updater: updater.clone(),
-			net: net.clone(),
+			net: Arc::downgrade(net),
 			dapps: dapps,
 			fetch: fetch,
 			eip86_transition: client.eip86_transition(),
@@ -116,36 +118,36 @@ impl<C, M, U, F> ParitySet for ParitySetClient<C, M, U, F> where
 	}
 
 	fn add_reserved_peer(&self, peer: String) -> Result<bool> {
-		match self.net.add_reserved_peer(peer) {
+		match self.net.upgrade().unwrap().add_reserved_peer(peer) {
 			Ok(()) => Ok(true),
 			Err(e) => Err(errors::invalid_params("Peer address", e)),
 		}
 	}
 
 	fn remove_reserved_peer(&self, peer: String) -> Result<bool> {
-		match self.net.remove_reserved_peer(peer) {
+		match self.net.upgrade().unwrap().remove_reserved_peer(peer) {
 			Ok(()) => Ok(true),
 			Err(e) => Err(errors::invalid_params("Peer address", e)),
 		}
 	}
 
 	fn drop_non_reserved_peers(&self) -> Result<bool> {
-		self.net.deny_unreserved_peers();
+		self.net.upgrade().unwrap().deny_unreserved_peers();
 		Ok(true)
 	}
 
 	fn accept_non_reserved_peers(&self) -> Result<bool> {
-		self.net.accept_unreserved_peers();
+		self.net.upgrade().unwrap().accept_unreserved_peers();
 		Ok(true)
 	}
 
 	fn start_network(&self) -> Result<bool> {
-		self.net.start_network();
+		self.net.upgrade().unwrap().start_network();
 		Ok(true)
 	}
 
 	fn stop_network(&self) -> Result<bool> {
-		self.net.stop_network();
+		self.net.upgrade().unwrap().stop_network();
 		Ok(true)
 	}
 

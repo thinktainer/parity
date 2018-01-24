@@ -320,20 +320,22 @@ fn execute_light(cmd: RunCmd, can_restart: bool, logger: Arc<RotatingLogger>) ->
 		}
 
 		let sync_status = Arc::new(LightSyncStatus(light_sync.clone()));
-		let node_health = node_health::NodeHealth::new(
+		let node_health = Arc::new(node_health::NodeHealth::new(
 			sync_status.clone(),
 			node_health::TimeChecker::new(&cmd.ntp_servers, fetch.pool()),
 			event_loop.remote(),
-		);
+		));
 
-		(node_health.clone(), dapps::Dependencies {
+		let deps = dapps::Dependencies {
 			sync_status,
-			node_health,
+			node_health: Arc::downgrade(&node_health),
 			contract_client: contract_client,
 			fetch: fetch.clone(),
 			signer: signer_service.clone(),
 			ui_address: cmd.ui_conf.redirection_address(),
-		})
+		};
+
+		(node_health, deps)
 	};
 
 	let dapps_middleware = dapps::new(cmd.dapps_conf.clone(), dapps_deps.clone())?;
@@ -346,7 +348,7 @@ fn execute_light(cmd: RunCmd, can_restart: bool, logger: Arc<RotatingLogger>) ->
 		client: service.client().clone(),
 		sync: light_sync.clone(),
 		net: light_sync.clone(),
-		health: node_health,
+		health: Arc::downgrade(&node_health),
 		secret_store: account_provider,
 		logger: logger,
 		settings: Arc::new(cmd.net_settings),
@@ -705,10 +707,10 @@ pub fn execute(cmd: RunCmd, can_restart: bool, logger: Arc<RotatingLogger>) -> R
 
 	// the dapps server
 	let (node_health, dapps_deps) = {
-		let (sync, client) = (sync_provider.clone(), client.clone());
 		let contract_client = Arc::new(::dapps::FullRegistrar { client: client.clone() });
 
-		struct SyncStatus(Arc<ethsync::SyncProvider>, Arc<Client>, ethsync::NetworkConfiguration);
+		use std::sync::Weak;
+		struct SyncStatus(Weak<ethsync::SyncProvider>, Arc<Client>, ethsync::NetworkConfiguration);
 		impl fmt::Debug for SyncStatus {
 			fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
 				write!(fmt, "Dapps Sync Status")
@@ -716,28 +718,31 @@ pub fn execute(cmd: RunCmd, can_restart: bool, logger: Arc<RotatingLogger>) -> R
 		}
 		impl node_health::SyncStatus for SyncStatus {
 			fn is_major_importing(&self) -> bool {
-				is_major_importing(Some(self.0.status().state), self.1.queue_info())
+				is_major_importing(Some(self.0.upgrade().unwrap().status().state), self.1.queue_info())
 			}
 			fn peers(&self) -> (usize, usize) {
-				let status = self.0.status();
+				let status = self.0.upgrade().unwrap().status();
 				(status.num_peers, status.current_max_peers(self.2.min_peers, self.2.max_peers) as usize)
 			}
 		}
 
-		let sync_status = Arc::new(SyncStatus(sync, client, net_conf));
-		let node_health = node_health::NodeHealth::new(
+		let sync_status = Arc::new(SyncStatus(Arc::downgrade(&sync_provider), client.clone(), net_conf));
+		let node_health = Arc::new(node_health::NodeHealth::new(
 			sync_status.clone(),
 			node_health::TimeChecker::new(&cmd.ntp_servers, fetch.pool()),
 			event_loop.remote(),
-		);
-		(node_health.clone(), dapps::Dependencies {
+		));
+
+		let deps = dapps::Dependencies {
 			sync_status,
-			node_health,
+			node_health: Arc::downgrade(&node_health),
 			contract_client: contract_client,
 			fetch: fetch.clone(),
 			signer: signer_service.clone(),
 			ui_address: cmd.ui_conf.redirection_address(),
-		})
+		};
+
+		(node_health, deps)
 	};
 	let dapps_middleware = dapps::new(cmd.dapps_conf.clone(), dapps_deps.clone())?;
 	let ui_middleware = dapps::new_ui(cmd.ui_conf.enabled, dapps_deps)?;
@@ -748,7 +753,7 @@ pub fn execute(cmd: RunCmd, can_restart: bool, logger: Arc<RotatingLogger>) -> R
 		snapshot: snapshot_service.clone(),
 		client: client.clone(),
 		sync: sync_provider.clone(),
-		health: node_health,
+		health: Arc::downgrade(&node_health),
 		net: manage_network.clone(),
 		secret_store: secret_store,
 		miner: miner.clone(),
@@ -857,7 +862,7 @@ pub fn execute(cmd: RunCmd, can_restart: bool, logger: Arc<RotatingLogger>) -> R
 	}
 
 	// Handle exit
-	let restart = (false, None);
+	let restart = wait_for_exit(Some(updater), Some(client), can_restart);
 
 	info!("Finishing work, please wait...");
 

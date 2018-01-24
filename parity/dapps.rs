@@ -146,9 +146,10 @@ impl<T: LightChainClient + 'static> ContractClient for LightRegistrar<T> {
 
 // TODO: light client implementation forwarding to OnDemand and waiting for future
 // to resolve.
+use std::sync::Weak;
 #[derive(Clone)]
 pub struct Dependencies {
-	pub node_health: NodeHealth,
+	pub node_health: Weak<NodeHealth>,
 	pub sync_status: Arc<SyncStatus>,
 	pub contract_client: Arc<ContractClient>,
 	pub fetch: FetchClient,
