@@ -20,29 +20,27 @@ use jsonrpc_core::Result;
 use ethsync::SyncProvider;
 use v1::traits::Net;
 
-use std::sync::Weak;
-
 /// Net rpc implementation.
 pub struct NetClient<S: ?Sized> {
-	sync: Weak<S>
+	sync: Arc<S>
 }
 
 impl<S: ?Sized> NetClient<S> where S: SyncProvider {
 	/// Creates new NetClient.
 	pub fn new(sync: &Arc<S>) -> Self {
 		NetClient {
-			sync: Arc::downgrade(&sync),
+			sync: sync.clone(),
 		}
 	}
 }
 
 impl<S: ?Sized> Net for NetClient<S> where S: SyncProvider + 'static {
 	fn version(&self) -> Result<String> {
-		Ok(format!("{}", self.sync.upgrade().unwrap().status().network_id).to_owned())
+		Ok(format!("{}", self.sync.status().network_id).to_owned())
 	}
 
 	fn peer_count(&self) -> Result<String> {
-		Ok(format!("0x{:x}", self.sync.upgrade().unwrap().status().num_peers as u64).to_owned())
+		Ok(format!("0x{:x}", self.sync.status().num_peers as u64).to_owned())
 	}
 
 	fn is_listening(&self) -> Result<bool> {

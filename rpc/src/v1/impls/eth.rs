@@ -90,8 +90,6 @@ impl Default for EthClientOptions {
 	}
 }
 
-use std::sync::Weak;
-
 /// Eth rpc implementation.
 pub struct EthClient<C, SN: ?Sized, S: ?Sized, M, EM> where
 	C: MiningBlockChainClient,
@@ -102,7 +100,7 @@ pub struct EthClient<C, SN: ?Sized, S: ?Sized, M, EM> where
 
 	client: Arc<C>,
 	snapshot: Arc<SN>,
-	sync: Weak<S>,
+	sync: Arc<S>,
 	accounts: Option<Arc<AccountProvider>>,
 	miner: Arc<M>,
 	external_miner: Arc<EM>,
@@ -131,7 +129,7 @@ impl<C, SN: ?Sized, S: ?Sized, M, EM> EthClient<C, SN, S, M, EM> where
 		EthClient {
 			client: client.clone(),
 			snapshot: snapshot.clone(),
-			sync: Arc::downgrade(sync),
+			sync: sync.clone(),
 			miner: miner.clone(),
 			accounts: accounts.clone(),
 			external_miner: em.clone(),
@@ -286,14 +284,14 @@ impl<C, SN: ?Sized, S: ?Sized, M, EM> Eth for EthClient<C, SN, S, M, EM> where
 	type Metadata = Metadata;
 
 	fn protocol_version(&self) -> Result<String> {
-		let version = self.sync.upgrade().unwrap().status().protocol_version.to_owned();
+		let version = self.sync.status().protocol_version.to_owned();
 		Ok(format!("{}", version))
 	}
 
 	fn syncing(&self) -> Result<SyncStatus> {
 		use ethcore::snapshot::RestorationStatus;
 
-		let status = self.sync.upgrade().unwrap().status();
+		let status = self.sync.status();
 		let client = &self.client;
 		let snapshot_status = self.snapshot.status();
 
