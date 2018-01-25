@@ -61,7 +61,7 @@ pub struct ParityClient<C, M, U>  {
 	updater: Arc<U>,
 	sync: Weak<SyncProvider>,
 	net: Weak<ManageNetwork>,
-	health: Weak<NodeHealth>,
+	health: Arc<NodeHealth>,
 	accounts: Option<Arc<AccountProvider>>,
 	logger: Arc<RotatingLogger>,
 	settings: Arc<NetworkSettings>,
@@ -92,7 +92,6 @@ impl<C, M, U> ParityClient<C, M, U> where
 		let eip86_transition = client.eip86_transition();
 		let sync = Arc::downgrade(&sync);
 		let net = Arc::downgrade(&net);
-		let health = Arc::downgrade(&health);
 		ParityClient {
 			client,
 			miner,
@@ -436,7 +435,7 @@ impl<C, M, U> Parity for ParityClient<C, M, U> where
 	}
 
 	fn node_health(&self) -> BoxFuture<Health> {
-		Box::new(self.health.upgrade().unwrap().health()
+		Box::new(self.health.health()
 			.map_err(|err| errors::internal("Health API failure.", err)))
 	}
 }

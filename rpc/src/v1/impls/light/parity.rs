@@ -48,8 +48,6 @@ use v1::types::{
 };
 use Host;
 
-use std::sync::Weak;
-
 /// Parity implementation for light client.
 pub struct ParityClient {
 	client: Arc<LightChainClient>,
@@ -57,7 +55,7 @@ pub struct ParityClient {
 	accounts: Arc<AccountProvider>,
 	logger: Arc<RotatingLogger>,
 	settings: Arc<NetworkSettings>,
-	health: Weak<NodeHealth>,
+	health: Arc<NodeHealth>,
 	signer: Option<Arc<SignerService>>,
 	dapps_address: Option<Host>,
 	ws_address: Option<Host>,
@@ -79,7 +77,6 @@ impl ParityClient {
 		ws_address: Option<Host>,
 		gas_price_percentile: usize,
 	) -> Self {
-		let health = Arc::downgrade(&health);
 		ParityClient {
 			light_dispatch,
 			accounts,
@@ -415,7 +412,7 @@ impl Parity for ParityClient {
 	}
 
 	fn node_health(&self) -> BoxFuture<Health> {
-		Box::new(self.health.upgrade().unwrap().health()
+		Box::new(self.health.health()
 			.map_err(|err| errors::internal("Health API failure.", err)))
 	}
 }
