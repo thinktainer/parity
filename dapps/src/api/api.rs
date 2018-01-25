@@ -60,8 +60,9 @@ impl Endpoint for RestApi {
 impl RestApi {
 	pub fn new(
 		fetcher: Arc<Fetcher>,
-		health: Weak<NodeHealth>,
+		health: Arc<NodeHealth>,
 	) -> Box<Endpoint> {
+		let health = Arc::downgrade(&health);
 		Box::new(RestApi {
 			fetcher,
 			health,

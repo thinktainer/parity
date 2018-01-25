@@ -144,8 +144,6 @@ pub struct Middleware {
 	router: router::Router,
 }
 
-use std::sync::Weak;
-
 impl Middleware {
 	/// Get local endpoints handle.
 	pub fn endpoints(&self) -> &Endpoints {
@@ -155,7 +153,7 @@ impl Middleware {
 	/// Creates new middleware for UI server.
 	pub fn ui<F: Fetch>(
 		pool: CpuPool,
-		health: Weak<NodeHealth>,
+		health: Arc<NodeHealth>,
 		dapps_domain: &str,
 		registrar: Arc<ContractClient>,
 		sync_status: Arc<SyncStatus>,
@@ -193,7 +191,7 @@ impl Middleware {
 	/// Creates new Dapps server middleware.
 	pub fn dapps<F: Fetch>(
 		pool: CpuPool,
-		health: Weak<NodeHealth>,
+		health: Arc<NodeHealth>,
 		ui_address: Option<(String, u16)>,
 		extra_embed_on: Vec<(String, u16)>,
 		extra_script_src: Vec<(String, u16)>,
@@ -265,7 +263,7 @@ impl http::RequestMiddleware for Middleware {
 
 fn special_endpoints(
 	pool: CpuPool,
-	health: Weak<NodeHealth>,
+	health: Arc<NodeHealth>,
 	content_fetcher: Arc<apps::fetcher::Fetcher>,
 ) -> HashMap<router::SpecialEndpoint, Option<Box<endpoint::Endpoint>>> {
 	let mut special = HashMap::new();

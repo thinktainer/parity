@@ -81,7 +81,7 @@ impl<C, M, U> ParityClient<C, M, U> where
 		sync: Arc<SyncProvider>,
 		updater: Arc<U>,
 		net: Arc<ManageNetwork>,
-		health: Weak<NodeHealth>,
+		health: Arc<NodeHealth>,
 		accounts: Option<Arc<AccountProvider>>,
 		logger: Arc<RotatingLogger>,
 		settings: Arc<NetworkSettings>,
@@ -92,6 +92,7 @@ impl<C, M, U> ParityClient<C, M, U> where
 		let eip86_transition = client.eip86_transition();
 		let sync = Arc::downgrade(&sync);
 		let net = Arc::downgrade(&net);
+		let health = Arc::downgrade(&health);
 		ParityClient {
 			client,
 			miner,

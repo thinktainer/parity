@@ -328,7 +328,7 @@ fn execute_light(cmd: RunCmd, can_restart: bool, logger: Arc<RotatingLogger>) ->
 
 		let deps = dapps::Dependencies {
 			sync_status,
-			node_health: Arc::downgrade(&node_health),
+			node_health: node_health.clone(),
 			contract_client: contract_client,
 			fetch: fetch.clone(),
 			signer: signer_service.clone(),
@@ -348,7 +348,7 @@ fn execute_light(cmd: RunCmd, can_restart: bool, logger: Arc<RotatingLogger>) ->
 		client: service.client().clone(),
 		sync: light_sync.clone(),
 		net: light_sync.clone(),
-		health: Arc::downgrade(&node_health),
+		health: node_health,
 		secret_store: account_provider,
 		logger: logger,
 		settings: Arc::new(cmd.net_settings),
@@ -735,7 +735,7 @@ pub fn execute(cmd: RunCmd, can_restart: bool, logger: Arc<RotatingLogger>) -> R
 
 		let deps = dapps::Dependencies {
 			sync_status,
-			node_health: Arc::downgrade(&node_health),
+			node_health: node_health.clone(),
 			contract_client: contract_client,
 			fetch: fetch.clone(),
 			signer: signer_service.clone(),
@@ -753,7 +753,7 @@ pub fn execute(cmd: RunCmd, can_restart: bool, logger: Arc<RotatingLogger>) -> R
 		snapshot: snapshot_service.clone(),
 		client: client.clone(),
 		sync: sync_provider.clone(),
-		health: Arc::downgrade(&node_health),
+		health: node_health,
 		net: manage_network.clone(),
 		secret_store: secret_store,
 		miner: miner.clone(),

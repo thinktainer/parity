@@ -73,12 +73,13 @@ impl ParityClient {
 		accounts: Arc<AccountProvider>,
 		logger: Arc<RotatingLogger>,
 		settings: Arc<NetworkSettings>,
-		health: Weak<NodeHealth>,
+		health: Arc<NodeHealth>,
 		signer: Option<Arc<SignerService>>,
 		dapps_address: Option<Host>,
 		ws_address: Option<Host>,
 		gas_price_percentile: usize,
 	) -> Self {
+		let health = Arc::downgrade(&health);
 		ParityClient {
 			light_dispatch,
 			accounts,
