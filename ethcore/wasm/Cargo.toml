@@ -8,7 +8,7 @@ byteorder = "1.0"
 ethcore-util = { path = "../../util" }
 ethcore-bigint = { path = "../../util/bigint" }
 log = "0.3"
-parity-wasm = "0.15"
-wasm-utils = { git = "https://github.com/paritytech/wasm-utils" }
+parity-wasm = "= 0.15.3"
+wasm-utils = { git = "https://github.com/paritytech/wasm-utils", rev = "a186c81c03a453dcc4ecf92058457181562550b9" }
 vm = { path = "../vm" }
 ethcore-logger = { path = "../../logger" }
